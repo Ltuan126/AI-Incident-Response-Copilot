@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Both apps already emit a service_name label. Setting it again as a target label would push
+  # the app's own value to exported_service_name, so it is deliberately not set here.
+  - job_name: incident-copilot-api
+    static_configs:
+      - targets: ["api:8000"]
+
+  - job_name: demo-checkout-service
+    static_configs:
+      - targets: ["demo-checkout-service:8001"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

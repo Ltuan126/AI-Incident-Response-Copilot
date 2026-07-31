@@ -1,0 +1,32 @@
+server:
+  http_listen_port: 9080
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: compose_service
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: container
+    pipeline_stages:
+      # Our apps log JSON carrying their own `service` name. Promoting it to the service_name
+      # label makes a Loki query scope to the same service a Prometheus query does — without it,
+      # logs would be keyed by Compose service name and the two sources would not line up.
+      - json:
+          expressions:
+            level: level
+            event: event
+            service: service
+      - labels:
+          level:
+          service_name: service
