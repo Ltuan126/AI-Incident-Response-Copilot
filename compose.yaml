@@ -60,13 +60,35 @@ services:
     environment:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
 
+  traffic-generator:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    command: ["python", "scripts/generate_traffic.py"]
+    environment:
+      TRAFFIC_TARGET_URL: http://demo-checkout-service:8001/checkout
+      TRAFFIC_REQUESTS_PER_SECOND: ${TRAFFIC_REQUESTS_PER_SECOND:-5}
+    depends_on:
+      - demo-checkout-service
+
   prometheus:
     image: prom/prometheus:v3.1.0
     ports:
       - "9090:9090"
     volumes:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus-data:/prometheus
+    depends_on:
+      - alertmanager
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml"]
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./infra/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
 
   loki:
     image: grafana/loki:3.3.2

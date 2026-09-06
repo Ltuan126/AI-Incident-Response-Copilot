@@ -57,6 +57,7 @@ the claims in this README honest.
 | Incident simulator (4 scenarios + recover) | **Done** |
 | Docker Compose stack (Postgres, Redis, Prometheus, Loki, Grafana) | **Done** |
 | Prometheus instrumentation of the Copilot itself | **Done** |
+| Automatic detection (traffic, Prometheus rules, Alertmanager webhook) | **Done** |
 | CI: ruff, mypy strict, pytest, image build, stack smoke test | **Done** |
 | Prometheus / Loki / deployment connectors | Planned — week 2 |
 | LangGraph agent, runbook RAG, evidence grounding | Planned — week 3 |
@@ -90,6 +91,8 @@ flowchart TD
 
     API -.metrics.-> PROM
     DEMO -.metrics.-> PROM
+    TRAFFIC[Traffic generator] --> DEMO
+    PROM --> AM[Alertmanager] --> API
     API -.logs.-> LOKI
     DEMO -.logs.-> LOKI
     PROM --> GRAF[Grafana]
@@ -131,6 +134,7 @@ docker compose exec api python scripts/seed_data.py
 | API metrics | http://localhost:8000/metrics |
 | Demo checkout service | http://localhost:8001/checkout |
 | Prometheus | http://localhost:9090 |
+| Alertmanager | http://localhost:9093 |
 | Grafana | http://localhost:3000 |
 | Loki | http://localhost:3100 |
 
@@ -140,8 +144,9 @@ docker compose exec api python scripts/seed_data.py
 curl -X POST http://localhost:8000/api/v1/simulator/incidents/deployment-regression
 ```
 
-This flips the demo service into a regressed `v1.4.2`, records the deployment, emits failing
-requests and timeout logs, and opens a correlated incident. Then look at what was created:
+This only flips the demo service into a regressed `v1.4.2` and records the deployment. The bundled
+traffic generator keeps calling `/checkout`; Prometheus detects the resulting error rate and
+Alertmanager sends the alert to the Copilot. After roughly 30–60 seconds, inspect the incident:
 
 ```bash
 curl "http://localhost:8000/api/v1/incidents?service_name=checkout-api"

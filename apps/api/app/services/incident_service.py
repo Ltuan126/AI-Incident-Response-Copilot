@@ -32,6 +32,7 @@ class IngestResult:
     status: IncidentStatus
     correlated: bool
     service_name: str
+    duplicate: bool = False
 
 
 async def get_or_create_service(
@@ -75,6 +76,26 @@ async def find_correlated_incident(
 async def ingest_alert(
     session: AsyncSession, payload: AlertIngestRequest, window_seconds: int
 ) -> IngestResult:
+    if payload.external_id:
+        existing = await session.execute(
+            select(Alert, Incident, Service)
+            .join(IncidentAlert, IncidentAlert.alert_id == Alert.id)
+            .join(Incident, Incident.id == IncidentAlert.incident_id)
+            .join(Service, Service.id == Alert.service_id)
+            .where(Alert.external_id == payload.external_id)
+        )
+        row = existing.one_or_none()
+        if row is not None:
+            alert, incident, service = row
+            return IngestResult(
+                alert_id=alert.id,
+                incident_id=incident.id,
+                status=IncidentStatus(incident.status),
+                correlated=True,
+                service_name=service.name,
+                duplicate=True,
+            )
+
     service = await get_or_create_service(
         session, payload.service_name, payload.labels.get("environment", "staging")
     )

@@ -1,4 +1,11 @@
+import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from apps.api.app.api.v1 import simulator
+from apps.api.app.models import DeploymentEvent
+from apps.api.app.schemas.simulator import FaultMode
 
 
 async def test_health_does_not_touch_dependencies(client: AsyncClient) -> None:
@@ -24,27 +31,27 @@ async def test_metrics_endpoint_exposes_prometheus_text(client: AsyncClient) -> 
     assert "http_requests_total" in response.text
 
 
-async def test_deployment_regression_scenario_creates_incident(client: AsyncClient) -> None:
-    # Whether the demo service is reachable is an environment detail, so it is not asserted here.
-    # What must hold either way: the scenario produces a usable incident.
+async def test_deployment_regression_waits_for_monitoring_to_create_incident(
+    client: AsyncClient, session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def fault_applied(base_url: str, mode: FaultMode) -> bool:
+        return True
+
+    monkeypatch.setattr(simulator, "_apply_fault_mode", fault_applied)
     response = await client.post("/api/v1/simulator/incidents/deployment-regression")
 
     assert response.status_code == 200
     body = response.json()
-    assert body["incident_id"] is not None
+    assert body["incident_id"] is None
+    assert body["alert_id"] is None
+    assert body["fault_mode_applied"] is True
     assert body["service_name"] == "checkout-api"
+    assert "Prometheus will open" in body["detail"]
 
-    timeline = await client.get(f"/api/v1/incidents/{body['incident_id']}/timeline")
-    event_types = [event["event_type"] for event in timeline.json()["events"]]
-    assert "deployment_recorded" in event_types
+    incidents = await client.get("/api/v1/incidents?service_name=checkout-api")
+    assert incidents.json()["total"] == 0
 
-
-async def test_simulator_incidents_are_counted_in_metrics(client: AsyncClient) -> None:
-    # Ingestion metrics live in the service layer precisely so simulator-created incidents,
-    # which never touch the alerts router, still show up.
-    await client.post("/api/v1/simulator/incidents/error-spike")
-
-    metrics = (await client.get("/metrics")).text
-
-    assert 'incidents_created_total{service_name="checkout-api",severity="critical"}' in metrics
-    assert 'alerts_ingested_total{alert_type="high_error_rate"' in metrics
+    deployment = await session.scalar(select(DeploymentEvent))
+    assert deployment is not None
+    assert deployment.previous_version == "v1.4.1"
+    assert deployment.version == "v1.4.2"
