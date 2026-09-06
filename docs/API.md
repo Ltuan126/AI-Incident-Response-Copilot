@@ -51,6 +51,24 @@ alert ID to make retries safe). `severity` is one of `low`, `medium`, `high`, `c
 
 Returns the stored alert. `404` when unknown.
 
+## Integrations
+
+### POST `/api/v1/integrations/alertmanager`
+
+Receives an Alertmanager webhook. Firing alerts are normalized into the alert ingestion model;
+resolved notifications are acknowledged and ignored for now. Alertmanager fingerprints are used
+as idempotency keys, so retries do not create duplicate alerts or incidents.
+
+```json
+{
+  "received": 1,
+  "ingested": 1,
+  "duplicates": 0,
+  "ignored": 0,
+  "incident_ids": ["9ac2..."]
+}
+```
+
 ## Incidents
 
 ### GET `/api/v1/incidents`
@@ -95,7 +113,9 @@ Starts an agent run.
 
 ## Simulator
 
-Each scenario switches the demo service into a fault mode and ingests a matching alert.
+Each scenario switches the demo service into a fault mode. The traffic generator produces real
+requests, Prometheus evaluates the metrics, and Alertmanager creates the matching incident through
+the integration webhook.
 
 | Method | Path | Alert produced |
 | --- | --- | --- |
@@ -109,15 +129,16 @@ Each scenario switches the demo service into a fault mode and ingests a matching
 {
   "scenario": "deployment_regression",
   "service_name": "checkout-api",
-  "alert_id": "...",
-  "incident_id": "...",
+  "alert_id": null,
+  "incident_id": null,
   "fault_mode_applied": true,
-  "detail": "Scenario started."
+  "detail": "Fault mode activated. Prometheus will open the incident after the alert threshold."
 }
 ```
 
-`fault_mode_applied: false` means the demo service was unreachable. The incident is still created,
-so the API stays usable when only part of the stack is running.
+`fault_mode_applied: false` means the demo service was unreachable, so no incident will be created.
+Successful responses intentionally do not contain an incident ID: the incident appears only after
+the monitoring path detects the failure.
 
 ## Demo checkout service
 

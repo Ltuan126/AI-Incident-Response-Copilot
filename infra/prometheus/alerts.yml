@@ -1,0 +1,20 @@
+groups:
+  - name: checkout-service
+    rules:
+      - alert: CheckoutHighErrorRate
+        expr: |
+          sum(rate(http_requests_total{service_name="checkout-api",endpoint="/checkout",status=~"5.."}[30s]))
+          /
+          clamp_min(sum(rate(http_requests_total{service_name="checkout-api",endpoint="/checkout"}[30s])), 0.001)
+          > 0.20
+        for: 20s
+        labels:
+          severity: critical
+          service_name: checkout-api
+          alert_type: high_error_rate
+          environment: staging
+        annotations:
+          summary: Checkout API error rate is above 20%
+          description: The demo checkout service is returning an abnormal proportion of 5xx responses.
+          observed_value: '{{ $value }}'
+          threshold: "0.20"

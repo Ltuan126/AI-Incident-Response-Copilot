@@ -59,7 +59,8 @@ jobs:
       - name: Start stack
         run: |
           cp .env.example .env
-          docker compose up -d --build api demo-checkout-service postgres redis
+          docker compose up -d --build api demo-checkout-service postgres redis \
+            prometheus alertmanager traffic-generator
 
       - name: Wait for the API to become ready
         run: |
@@ -77,8 +78,13 @@ jobs:
       - name: Drive the deployment-regression scenario
         run: |
           curl -fsS -X POST http://localhost:8000/api/v1/simulator/incidents/deployment-regression
-          curl -fsS "http://localhost:8000/api/v1/incidents?service_name=checkout-api" \
-            | grep -q '"total":1'
+          for _ in $(seq 1 40); do
+            if curl -fsS "http://localhost:8000/api/v1/incidents?service_name=checkout-api" \
+              | grep -q '"total":1'; then exit 0; fi
+            sleep 3
+          done
+          echo "Prometheus/Alertmanager did not create an incident"
+          exit 1
 
       - name: Dump logs on failure
         if: failure()
