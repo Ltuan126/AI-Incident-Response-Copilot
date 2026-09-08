@@ -18,6 +18,16 @@ Prometheus scraping metrics → logs reaching Loki.
 
 ## Week 2 — Data connectors
 
+Completed foundation:
+
+- Step 1: traffic generator → Prometheus alert rules → Alertmanager webhook → incident, without
+  the simulator creating an alert directly.
+- Step 2: investigation/evidence models and migration, read APIs, tool audit storage, citation
+  validation, transaction rollback tests, and a PostgreSQL integration/migration CI job.
+
+**Next:** implement the actual connectors below. The evidence APIs currently return empty lists
+until a collector writes data; neither collection nor LLM analysis runs automatically yet.
+
 Prometheus, Loki and deployment connectors. The shared `Evidence` model. Tool timeouts, bounded
 retries and the tool-call audit log. Seeded deployment history. Integration tests against real
 Postgres. An API to inspect collected evidence.

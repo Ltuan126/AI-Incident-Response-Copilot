@@ -51,3 +51,31 @@ class IncidentEventType(StrEnum):
     SEVERITY_ESCALATED = "severity_escalated"
     STATUS_CHANGED = "status_changed"
     DEPLOYMENT_RECORDED = "deployment_recorded"
+    AGENT_RUN_CREATED = "agent_run_created"
+    EVIDENCE_COLLECTED = "evidence_collected"
+
+
+class AgentRunStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+
+
+class ToolCallStatus(StrEnum):
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+
+
+class EvidenceSourceType(StrEnum):
+    METRIC = "metric"
+    LOG = "log"
+    DEPLOYMENT = "deployment"
+    RUNBOOK = "runbook"
+
+
+class RiskLevel(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"

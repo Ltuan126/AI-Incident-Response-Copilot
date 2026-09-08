@@ -2,6 +2,9 @@
 
 ## Shape of the system
 
+The worker, graph, dashboard and approval flow below describe the target architecture. Currently
+implemented: incident ingestion/monitoring and the evidence persistence/read-API foundation.
+
 A modular monolith plus an agent worker. The API owns incident state and the approval gate; the
 worker owns the investigation. They share one PostgreSQL database rather than talking over a
 queue, because at this scale a queue would add operational surface without buying anything.
@@ -98,19 +101,30 @@ or when the evidence does not support any hypothesis. Returning
 
 ## Evidence
 
-Everything the agent fetches becomes an `Evidence` record with a stable ID, a source type
-(`metric` / `log` / `deployment` / `runbook`), a time range, a summary and the raw query used to
-obtain it. Hypotheses reference those IDs. This makes two things possible: a reviewer can audit
-any claim back to its source, and the evaluation harness can score citation precision
-mechanically.
+The implemented persistence layer stores `Evidence` with a stable UUID, incident and run IDs,
+source type (`metric` / `log` / `deployment` / `runbook`), source name, exact query and parameters,
+optional time range, collection timestamp, summary and raw JSON. A successful tool call may be
+linked for input/output/error auditing. Collection itself is the next step, not part of this model.
+
+The internal investigation service requires every hypothesis to cite at least one existing
+evidence record in the same run. Composite foreign keys also prevent cross-run citations and
+cross-incident evidence, even when bypassing the service. This is referential validation, not
+proof that a hypothesis is correct or actually supported by the cited contents; semantic grounding
+and evaluation still belong to the future agent.
+
+Writers own the transaction: helpers validate and flush without committing, so a tool call,
+evidence and associated timeline events can be rolled back together. See [EVIDENCE.md](EVIDENCE.md).
 
 ## Data model
 
 Week 1 tables (implemented): `services`, `alerts`, `incidents`, `incident_alerts`,
 `incident_events`, `deployment_events`.
 
-Later tables (specified, not yet migrated): `agent_runs`, `tool_calls`, `evidence`, `hypotheses`,
-`recommendations`, `approvals`, `runbooks`.
+Step 2 tables (implemented in migration `0002`): `agent_runs`, `tool_calls`, `evidence`,
+`hypotheses`, `hypothesis_evidence` (citation links), `recommendations`.
+
+Later tables (specified, not yet migrated): `approvals`, `runbooks`. Evidence supports the
+`runbook` source type, but document ingestion, embeddings and retrieval are not implemented.
 
 Two notes on choices made:
 
@@ -150,8 +164,12 @@ a LogQL query. Without this, the demo service would be `checkout-api` in Prometh
 
 ## Testing
 
-Tests run against in-memory SQLite via `aiosqlite` with a `StaticPool`, so the whole suite needs
-no running services and finishes in seconds. The tradeoff is real: SQLite does not enforce the
-Postgres types, and timezone-aware datetimes come back naive. Anything depending on Postgres
-behaviour specifically — pgvector queries, JSONB operators — needs an integration test against
-the real database instead.
+By default tests use in-memory SQLite via `aiosqlite`, a `StaticPool` and explicitly enabled
+foreign keys; no services are needed. With `TEST_DATABASE_URL=postgresql+asyncpg://...`, the same
+suite runs against PostgreSQL in a unique, disposable schema per test. CI runs both modes.
+
+The migration test creates the old `0001` schema, saves an incident, upgrades to head, exercises
+all six new tables, checks schema/model consistency, downgrades and upgrades again while verifying
+that the old incident survives. Other tests cover provenance round-trips, filters, pagination,
+transaction rollback and cross-run constraints. SQLite still returns naive datetimes whereas
+PostgreSQL preserves timezone-aware values; inputs require explicit timezones in either mode.

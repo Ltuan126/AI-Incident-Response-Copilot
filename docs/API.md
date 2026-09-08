@@ -89,7 +89,8 @@ Full incident record. `404` when unknown.
 ### GET `/api/v1/incidents/{incident_id}/timeline`
 
 Ordered `incident_events`, oldest first. Event types currently emitted: `incident_created`,
-`alert_correlated`, `severity_escalated`, `deployment_recorded`.
+`alert_correlated`, `severity_escalated`, `deployment_recorded`. The investigation persistence
+service also emits `agent_run_created` and `evidence_collected` when records are written.
 
 ```json
 {
@@ -110,6 +111,37 @@ Ordered `incident_events`, oldest first. Event types currently emitted: `inciden
 Starts an agent run.
 
 ### GET `/api/v1/incidents/{incident_id}/report` — **Planned (week 3)**
+
+## Evidence and investigation records (implemented — step 2)
+
+All endpoints below are read-only. They inspect persisted records; they do not query Prometheus,
+Loki or an LLM. No public endpoint to create or modify evidence is exposed.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/v1/incidents/{incident_id}/evidence` | Evidence for one incident across its runs. |
+| GET | `/api/v1/incidents/{incident_id}/evidence/{evidence_id}` | Full source query and raw data; 404 if the evidence belongs to another incident. |
+| GET | `/api/v1/incidents/{incident_id}/agent-runs` | Investigation records, newest first. |
+| GET | `/api/v1/agent-runs/{agent_run_id}` | Status, model/prompt metadata, timestamps and token counts. |
+| GET | `/api/v1/agent-runs/{agent_run_id}/evidence` | Evidence from exactly this investigation. |
+| GET | `/api/v1/agent-runs/{agent_run_id}/tool-calls` | Completed tool-call inputs, outputs, errors and timing, oldest first. |
+
+Every list returns `{"items": [...], "total": N}`. `total` is the filtered count before pagination.
+All lists accept `limit` (1–200, default 50) and `offset` (>= 0, default 0). Evidence is ordered
+by `collected_at`, then UUID, oldest first. Other lists also break timestamp ties by UUID.
+
+Both evidence lists accept `source_type` (`metric`, `log`, `deployment`, `runbook`) and exact-match
+`source_name`. The incident evidence list additionally accepts `agent_run_id`. A filter that
+matches no records returns an empty list, including a run from another incident. An unknown
+incident or run in the URL path returns `404`; invalid UUIDs, enums or pagination return `422`.
+
+Evidence includes `id`, `incident_id`, `agent_run_id`, optional `tool_call_id`, `source_type`,
+`source_name`, `query`, `query_params`, `summary`, `raw_data`, optional time-range boundaries,
+`collected_at`, and `created_at`. Queries and JSON strings retain their original whitespace.
+
+New incidents have no evidence until a collector writes it. Hypothesis/recommendation persistence
+is implemented internally; analysis/report endpoints, approval and execution remain planned.
+See [EVIDENCE.md](EVIDENCE.md) for the write contract, validation rules and security limitations.
 
 ## Simulator
 
@@ -159,9 +191,6 @@ Fault modes only change responses, latency, logs and reported metrics — nothin
 **Agent (week 3–4)**
 
 ```
-GET  /api/v1/agent-runs/{run_id}
-GET  /api/v1/agent-runs/{run_id}/tool-calls
-GET  /api/v1/agent-runs/{run_id}/evidence
 WS   /api/v1/agent-runs/{run_id}/stream
 ```
 

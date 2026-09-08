@@ -15,6 +15,10 @@ rule-based baseline.
 
 ## What it looks like
 
+The following is the **target workflow**, not output from the current implementation. Automatic
+alert detection and the investigation persistence layer work; connectors, AI analysis and approval
+execution are still planned.
+
 Prometheus fires: `checkout-api` error rate went from 1% to 35%.
 
 The Copilot investigates and reports:
@@ -59,6 +63,8 @@ the claims in this README honest.
 | Prometheus instrumentation of the Copilot itself | **Done** |
 | Automatic detection (traffic, Prometheus rules, Alertmanager webhook) | **Done** |
 | CI: ruff, mypy strict, pytest, image build, stack smoke test | **Done** |
+| Evidence model + source/query/raw-data APIs + investigation audit records | **Done** |
+| PostgreSQL integration tests + migration upgrade/downgrade checks | **Done** |
 | Prometheus / Loki / deployment connectors | Planned — week 2 |
 | LangGraph agent, runbook RAG, evidence grounding | Planned — week 3 |
 | Human approval gate + simulated remediation | Planned — week 4 |
@@ -158,6 +164,21 @@ Put the service back to normal:
 curl -X POST http://localhost:8000/api/v1/simulator/recover
 ```
 
+### Inspect evidence (step 2)
+
+After upgrading the schema, use an incident UUID from the incident list:
+
+```bash
+curl "http://localhost:8000/api/v1/incidents/INCIDENT_UUID/evidence?source_type=metric"
+curl "http://localhost:8000/api/v1/incidents/INCIDENT_UUID/agent-runs"
+```
+
+These return `{"items": [], "total": 0}` until a collector writes records. Step 2 adds storage,
+validation and read APIs; it does **not** manufacture evidence or start an AI agent. See
+[docs/EVIDENCE.md](docs/EVIDENCE.md) for the data contract and internal write boundary that the
+step 3 connectors will use. Existing installations need `alembic upgrade head` after rebuilding
+the API image; do not delete the database volume.
+
 ---
 
 ## Running without Docker
@@ -178,9 +199,22 @@ Tests run against in-memory SQLite and need no services at all:
 pytest
 ```
 
+To run the same tests against a disposable PostgreSQL database (also done in CI):
+
+```bash
+TEST_DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@localhost:5432/TEST_DB pytest
+```
+
+Use a dedicated **test** database with permission to create schemas. Each test creates and drops
+only its own uniquely named schema. The suite also runs the actual Alembic upgrade/downgrade,
+checks schema/model consistency, and verifies that pre-existing incidents survive.
+
 ---
 
 ## Safety model
+
+This section describes the planned execution policy. Step 2 only stores recommendations as
+`proposed` with `requires_approval=true`; there is no approval or remediation execution API yet.
 
 The agent can propose anything. It can *execute* almost nothing.
 

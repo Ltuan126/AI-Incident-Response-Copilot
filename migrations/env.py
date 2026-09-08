@@ -11,7 +11,7 @@ from apps.api.app.models import Base
 config = context.config
 config.set_main_option("sqlalchemy.url", get_settings().database_url)
 
-if config.config_file_name is not None:
+if config.config_file_name is not None and config.attributes.get("configure_logger", True):
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
@@ -45,5 +45,8 @@ async def run_migrations_online() -> None:
 
 if context.is_offline_mode():
     run_migrations_offline()
+elif config.attributes.get("connection") is not None:
+    # Tests can migrate a disposable schema through an existing async run_sync connection.
+    do_run_migrations(config.attributes["connection"])
 else:
     asyncio.run(run_migrations_online())
