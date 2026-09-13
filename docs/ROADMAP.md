@@ -24,13 +24,15 @@ Completed foundation:
   the simulator creating an alert directly.
 - Step 2: investigation/evidence models and migration, read APIs, tool audit storage, citation
   validation, transaction rollback tests, and a PostgreSQL integration/migration CI job.
+- Step 3 foundation: bounded Prometheus/Loki/PostgreSQL connectors, source-specific query formats,
+  failed-tool auditing, partial-source continuation and `collect-evidence` API.
 
-**Next:** implement the actual connectors below. The evidence APIs currently return empty lists
-until a collector writes data; neither collection nor LLM analysis runs automatically yet.
+**Next:** add the worker/agent that reasons over the collected evidence. The collection endpoint is
+explicitly triggered and does not run an LLM automatically.
 
-Prometheus, Loki and deployment connectors. The shared `Evidence` model. Tool timeouts, bounded
-retries and the tool-call audit log. Seeded deployment history. Integration tests against real
-Postgres. An API to inspect collected evidence.
+The remaining Week 2 work is connector hardening and deployment-history fixtures. The core
+Prometheus, Loki and PostgreSQL connectors, shared `Evidence` model, bounded retries, tool-call
+audit log, PostgreSQL tests and evidence inspection API are implemented.
 
 **Deliverable:** given an incident ID, fetch metrics, logs and deployments and persist them as
 evidence rows.

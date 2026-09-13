@@ -1,6 +1,8 @@
-# Evidence persistence — step 2
+# Evidence persistence and connector collection — steps 2–3
 
-This is the data foundation for connectors and an agent, not an implementation of either.
+This is the data contract for the connectors and the agent. The three monitoring/deployment
+connectors and the collection endpoint are now implemented; the agent that reasons over their
+results is the next step.
 Migration `0002` adds six tables without altering or deleting the existing incident tables.
 
 ## Stored records
@@ -18,7 +20,9 @@ Evidence supports metrics, logs, deployments and runbooks. `raw_data` must be a 
 a source array in an object such as `{"results": [...]}`. Preserve the source response here and
 put the human-readable interpretation in `summary`. Queries and nested JSON strings are not
 trimmed or rewritten. `query_params` records the parameters needed to reproduce the request;
-source connectors will define the specific PromQL, LogQL and deployment-query conventions.
+source connectors define the specific PromQL, LogQL and deployment-query conventions. A successful
+source query becomes one evidence row. A timeout or invalid response is recorded as a failed tool
+call while the other sources continue; no fabricated evidence is written for a failed source.
 
 The collected timestamp is required (defaults to UTC now at input creation). Time-range boundaries
 are optional, but must be supplied together and be ordered. All input timestamps require timezones.
@@ -55,6 +59,29 @@ Recommendations are constrained to `status="proposed"` and `requires_approval=tr
 cannot be supplied through the create schema. This is **not** the future human-approval gate:
 there is no approval, action execution, agent lifecycle runner or automatic recovery verification.
 
+## Connector collection endpoint
+
+`POST /api/v1/incidents/{incident_id}/collect-evidence` starts a bounded collection pass. The body
+is optional; defaults are a five-minute lookback, 15-second Prometheus step and 100 Loki lines.
+
+```bash
+curl -X POST \
+  "http://localhost:8000/api/v1/incidents/INCIDENT_UUID/collect-evidence" \
+  -H 'Content-Type: application/json' \
+  -d '{"lookback_seconds":300,"step_seconds":15,"log_limit":100}'
+```
+
+The response contains the `agent_run_id`, UTC time range, one status per source and the evidence
+IDs that were stored. `status="completed"` means at least one source produced evidence. If all
+three sources fail, the run is `insufficient_evidence`, with failure details in the tool-call audit
+endpoint. HTTP source calls use `CONNECTOR_TIMEOUT_SECONDS` (default 5) and at most
+`CONNECTOR_MAX_RETRIES` (default 2, capped at 3); 4xx responses are not retried. Loki receives
+nanosecond Unix bounds, while Prometheus receives RFC3339 bounds and a step.
+
+The endpoint is intentionally synchronous for this MVP and has no authentication. In production,
+queue the collection pass behind a worker and protect the endpoint before exposing monitoring
+data.
+
 ## Inspect records
 
 ```bash
@@ -66,9 +93,9 @@ curl "http://localhost:8000/api/v1/agent-runs/RUN_UUID/tool-calls"
 ```
 
 Replace placeholders with actual UUIDs. Full filters and response fields are in [API.md](API.md).
-New incidents legitimately have no evidence. No seed data is presented as live evidence and no
-public write endpoint is exposed. The synthetic fixtures in `apps/api/tests/test_evidence.py`
-exercise the full write/read path without pretending a connector exists.
+New incidents legitimately have no evidence until collection is triggered. The synthetic fixtures
+in `apps/api/tests/test_evidence.py` and `test_connectors.py` cover the write/read path; they do not
+pretend fixtures are live source data.
 
 ## Migration and safety
 
@@ -84,6 +111,6 @@ Downgrading to `0001` intentionally drops all six investigation tables and their
 older incident/service tables and timeline remain. Downgrade tests run only in disposable schemas.
 
 These are local-demo APIs without authentication/RBAC. Evidence and tool payloads may contain
-sensitive source data: do not expose these endpoints publicly. Future connectors must redact
-secrets and bound payload sizes before persistence. There are currently no retention/deletion
+sensitive source data: do not expose these endpoints publicly. Connectors must redact secrets and
+bound payload sizes before persistence. There are currently no retention/deletion
 APIs, encryption features or production access controls for investigation records.

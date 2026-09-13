@@ -120,6 +120,19 @@ jobs:
           echo "Prometheus/Alertmanager did not create an incident"
           exit 1
 
+      - name: Collect evidence from all configured sources
+        run: |
+          incident_id=$(curl -fsS "http://localhost:8000/api/v1/incidents?service_name=checkout-api" \
+            | python -c 'import json, sys; print(json.load(sys.stdin)["items"][0]["id"])')
+          curl -fsS -X POST \
+            "http://localhost:8000/api/v1/incidents/${incident_id}/collect-evidence" \
+            -H 'Content-Type: application/json' -d '{}' \
+            | tee /tmp/collection.json
+          grep -q '"agent_run_id"' /tmp/collection.json
+          grep -q '"source_type":"metric"' /tmp/collection.json
+          grep -q '"source_type":"log"' /tmp/collection.json
+          grep -q '"source_type":"deployment"' /tmp/collection.json
+
       - name: Dump logs on failure
         if: failure()
         run: docker compose logs

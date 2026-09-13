@@ -112,7 +112,7 @@ Starts an agent run.
 
 ### GET `/api/v1/incidents/{incident_id}/report` — **Planned (week 3)**
 
-## Evidence and investigation records (implemented — step 2)
+## Evidence and investigation records (implemented — steps 2–3 foundation)
 
 All endpoints below are read-only. They inspect persisted records; they do not query Prometheus,
 Loki or an LLM. No public endpoint to create or modify evidence is exposed.
@@ -125,6 +125,7 @@ Loki or an LLM. No public endpoint to create or modify evidence is exposed.
 | GET | `/api/v1/agent-runs/{agent_run_id}` | Status, model/prompt metadata, timestamps and token counts. |
 | GET | `/api/v1/agent-runs/{agent_run_id}/evidence` | Evidence from exactly this investigation. |
 | GET | `/api/v1/agent-runs/{agent_run_id}/tool-calls` | Completed tool-call inputs, outputs, errors and timing, oldest first. |
+| POST | `/api/v1/incidents/{incident_id}/collect-evidence` | Query Prometheus, Loki and deployment history, persist successful results and audit failures. |
 
 Every list returns `{"items": [...], "total": N}`. `total` is the filtered count before pagination.
 All lists accept `limit` (1–200, default 50) and `offset` (>= 0, default 0). Evidence is ordered
@@ -142,6 +143,14 @@ Evidence includes `id`, `incident_id`, `agent_run_id`, optional `tool_call_id`, 
 New incidents have no evidence until a collector writes it. Hypothesis/recommendation persistence
 is implemented internally; analysis/report endpoints, approval and execution remain planned.
 See [EVIDENCE.md](EVIDENCE.md) for the write contract, validation rules and security limitations.
+
+### POST `/api/v1/incidents/{incident_id}/collect-evidence`
+
+Starts the connector pass synchronously. The body is optional; it accepts `lookback_seconds`,
+`step_seconds`, `log_limit` and an optional UTC `end_at`. The response reports the investigation
+run, selected range and each source's `succeeded` or `failed` status. At least one successful
+source gives run status `completed`; when all sources fail, the run is `insufficient_evidence`.
+The endpoint returns `404` for an unknown incident and `422` for an invalid body or future `end_at`.
 
 ## Simulator
 

@@ -1,11 +1,12 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func, select
 
-from apps.api.app.api.deps import SessionDep
+from apps.api.app.api.deps import SessionDep, SettingsDep
 from apps.api.app.models import AgentRun, Evidence, EvidenceSourceType, Incident, ToolCall
+from apps.api.app.schemas.collection import CollectEvidenceRequest, CollectEvidenceResponse
 from apps.api.app.schemas.investigation import (
     AgentRunListResponse,
     AgentRunRead,
@@ -14,10 +15,33 @@ from apps.api.app.schemas.investigation import (
     ToolCallListResponse,
     ToolCallRead,
 )
+from apps.api.app.services.collection_service import (
+    CollectionNotFoundError,
+    collect_incident_evidence,
+)
 
 router = APIRouter(tags=["investigations"])
 PageLimit = Annotated[int, Query(ge=1, le=200)]
 PageOffset = Annotated[int, Query(ge=0)]
+
+
+@router.post(
+    "/incidents/{incident_id}/collect-evidence",
+    response_model=CollectEvidenceResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def collect_evidence(
+    incident_id: uuid.UUID,
+    session: SessionDep,
+    settings: SettingsDep,
+    payload: CollectEvidenceRequest | None = None,
+) -> CollectEvidenceResponse:
+    try:
+        return await collect_incident_evidence(
+            session, incident_id, payload or CollectEvidenceRequest(), settings
+        )
+    except CollectionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 async def _require_incident(session: SessionDep, incident_id: uuid.UUID) -> None:

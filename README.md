@@ -16,7 +16,7 @@ rule-based baseline.
 ## What it looks like
 
 The following is the **target workflow**, not output from the current implementation. Automatic
-alert detection and the investigation persistence layer work; connectors, AI analysis and approval
+alert detection, connector collection and investigation persistence work; AI analysis and approval
 execution are still planned.
 
 Prometheus fires: `checkout-api` error rate went from 1% to 35%.
@@ -65,7 +65,7 @@ the claims in this README honest.
 | CI: ruff, mypy strict, pytest, image build, stack smoke test | **Done** |
 | Evidence model + source/query/raw-data APIs + investigation audit records | **Done** |
 | PostgreSQL integration tests + migration upgrade/downgrade checks | **Done** |
-| Prometheus / Loki / deployment connectors | Planned — week 2 |
+| Prometheus / Loki / deployment connectors + collection endpoint | **Done** |
 | LangGraph agent, runbook RAG, evidence grounding | Planned — week 3 |
 | Human approval gate + simulated remediation | Planned — week 4 |
 | Evaluation suite and rule-based baseline | Planned — week 5 |
@@ -173,10 +173,17 @@ curl "http://localhost:8000/api/v1/incidents/INCIDENT_UUID/evidence?source_type=
 curl "http://localhost:8000/api/v1/incidents/INCIDENT_UUID/agent-runs"
 ```
 
-These return `{"items": [], "total": 0}` until a collector writes records. Step 2 adds storage,
-validation and read APIs; it does **not** manufacture evidence or start an AI agent. See
+These return `{"items": [], "total": 0}` until a collection pass writes records. Start one for the
+incident with:
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/incidents/INCIDENT_UUID/collect-evidence"
+```
+
+The pass queries Prometheus, Loki and PostgreSQL deployment history and returns one status per
+source. This collection flow does not start an AI agent or execute remediation. See
 [docs/EVIDENCE.md](docs/EVIDENCE.md) for the data contract and internal write boundary that the
-step 3 connectors will use. Existing installations need `alembic upgrade head` after rebuilding
+agent uses. Existing installations need `alembic upgrade head` after rebuilding
 the API image; do not delete the database volume.
 
 ---

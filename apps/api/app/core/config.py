@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     prometheus_url: str = "http://localhost:9090"
     loki_url: str = "http://localhost:3100"
     demo_service_url: str = "http://localhost:8001"
+    connector_timeout_seconds: float = 5.0
+    connector_max_retries: int = 2
 
     correlation_window_seconds: int = 300
     prompt_version: str = "incident-analysis-v1"
