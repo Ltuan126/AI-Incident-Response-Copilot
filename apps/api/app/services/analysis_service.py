@@ -31,6 +31,10 @@ from apps.api.app.services.investigation_service import (
     record_recommendation,
 )
 
+ROLLBACK_RATIONALE = (
+    "Rollback the implicated deployment after human approval, then verify recovery."
+)
+
 
 async def analyze_incident(
     session: AsyncSession,
@@ -147,10 +151,7 @@ async def analyze_incident(
             hypothesis_id=hypothesis.id,
             action_type="simulated_rollback",
             parameters={"incident_id": str(incident_id)},
-            rationale=(
-                "Rollback the implicated deployment after human approval, "
-                "then verify recovery."
-            ),
+            rationale=ROLLBACK_RATIONALE,
             risk_level=RiskLevel.MEDIUM,
         ),
     )
