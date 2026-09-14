@@ -21,8 +21,6 @@ async def analyze(
     payload: AnalyzeIncidentRequest | None = None,
 ) -> AnalyzeIncidentResponse:
     try:
-        return await analyze_incident(
-            session, incident_id, payload or AnalyzeIncidentRequest()
-        )
+        return await analyze_incident(session, incident_id, payload or AnalyzeIncidentRequest())
     except InvestigationNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
