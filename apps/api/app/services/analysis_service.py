@@ -147,7 +147,10 @@ async def analyze_incident(
             hypothesis_id=hypothesis.id,
             action_type="simulated_rollback",
             parameters={"incident_id": str(incident_id)},
-            rationale="Rollback the implicated deployment after human approval, then verify recovery.",
+            rationale=(
+                "Rollback the implicated deployment after human approval, "
+                "then verify recovery."
+            ),
             risk_level=RiskLevel.MEDIUM,
         ),
     )
