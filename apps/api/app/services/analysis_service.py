@@ -15,19 +15,17 @@ from apps.api.app.models import (
     AgentRunStatus,
     Evidence,
     EvidenceSourceType,
-    Hypothesis,
     Incident,
-    Recommendation,
     RiskLevel,
 )
 from apps.api.app.schemas.analysis import (
     AnalysisHypothesisRead,
     AnalysisRecommendationRead,
-    AnalyzeIncidentResponse,
     AnalyzeIncidentRequest,
+    AnalyzeIncidentResponse,
 )
+from apps.api.app.schemas.investigation import HypothesisCreate, RecommendationCreate
 from apps.api.app.services.investigation_service import (
-    InvalidEvidenceReferenceError,
     InvestigationNotFoundError,
     record_hypothesis,
     record_recommendation,
@@ -91,9 +89,7 @@ async def analyze_incident(
     deployment_ids = [
         item.id for item in evidence if item.source_type == EvidenceSourceType.DEPLOYMENT
     ]
-    text = " ".join(
-        f"{item.summary} {item.query}".lower() for item in evidence
-    )
+    text = " ".join(f"{item.summary} {item.query}".lower() for item in evidence)
     deployment_regression = bool(deployment_ids) and (
         bool(metric_ids) or bool(log_ids) or "error" in text or "timeout" in text
     )
@@ -134,26 +130,26 @@ async def analyze_incident(
     hypothesis = await record_hypothesis(
         session,
         run.id,
-        {
-            "root_cause": "deployment_regression",
-            "summary": (
+        HypothesisCreate(
+            root_cause="deployment_regression",
+            summary=(
                 "A recent deployment is the most likely cause of the incident: "
                 "deployment evidence aligns with metric or log degradation."
             ),
-            "confidence": confidence,
-            "evidence_ids": cited_ids,
-        },
+            confidence=confidence,
+            evidence_ids=cited_ids,
+        ),
     )
     recommendation = await record_recommendation(
         session,
         run.id,
-        {
-            "hypothesis_id": hypothesis.id,
-            "action_type": "simulated_rollback",
-            "parameters": {"incident_id": str(incident_id)},
-            "rationale": "Rollback the implicated deployment after human approval, then verify recovery.",
-            "risk_level": RiskLevel.MEDIUM,
-        },
+        RecommendationCreate(
+            hypothesis_id=hypothesis.id,
+            action_type="simulated_rollback",
+            parameters={"incident_id": str(incident_id)},
+            rationale="Rollback the implicated deployment after human approval, then verify recovery.",
+            risk_level=RiskLevel.MEDIUM,
+        ),
     )
     run.status = AgentRunStatus.COMPLETED
     run.finished_at = datetime.now(UTC)
