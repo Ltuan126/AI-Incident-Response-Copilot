@@ -68,6 +68,7 @@ async def analyze_incident(
     )
     if not evidence:
         run.status = AgentRunStatus.INSUFFICIENT_EVIDENCE
+        run.started_at = run.started_at or datetime.now(UTC)
         run.finished_at = datetime.now(UTC)
         run.error_message = "No evidence was collected for this run."
         await session.flush()
