@@ -65,9 +65,7 @@ async def add_evidence(
     return await record_evidence(session, run.id, payload)
 
 
-async def make_complete_evidence(
-    session: AsyncSession, run: AgentRun
-) -> list[Evidence]:
+async def make_complete_evidence(session: AsyncSession, run: AgentRun) -> list[Evidence]:
     records = [
         await add_evidence(
             session, run, "deployment", "v1.4.2 deployed shortly before the incident"
@@ -75,9 +73,7 @@ async def make_complete_evidence(
         await add_evidence(
             session, run, "metric", "checkout error rate increased after deployment"
         ),
-        await add_evidence(
-            session, run, "log", "database connection timeout in checkout-api"
-        ),
+        await add_evidence(session, run, "log", "database connection timeout in checkout-api"),
     ]
     await session.commit()
     return records
