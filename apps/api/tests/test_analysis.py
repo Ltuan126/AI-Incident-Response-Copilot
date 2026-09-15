@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -24,14 +24,14 @@ from apps.api.app.services.investigation_service import (
 STARTED_AT = datetime(2026, 9, 14, 12, 0, tzinfo=UTC)
 
 
-async def make_incident(client: AsyncClient) -> uuid.UUID:
+async def make_incident(client: AsyncClient, started_at: datetime = STARTED_AT) -> uuid.UUID:
     response = await client.post(
         "/api/v1/alerts",
         json={
             "service_name": "checkout-api",
             "alert_type": "high_error_rate",
             "severity": "critical",
-            "started_at": STARTED_AT.isoformat(),
+            "started_at": started_at.isoformat(),
         },
     )
     assert response.status_code == 201
@@ -157,7 +157,7 @@ async def test_analyze_rejects_run_from_another_incident(
     client: AsyncClient, session: AsyncSession
 ) -> None:
     first_incident = await make_incident(client)
-    second_incident = await make_incident(client)
+    second_incident = await make_incident(client, STARTED_AT + timedelta(minutes=10))
     run = await make_run(session, first_incident)
     await session.commit()
 
