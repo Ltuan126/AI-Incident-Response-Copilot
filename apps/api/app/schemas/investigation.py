@@ -12,7 +12,13 @@ from pydantic import (
     model_validator,
 )
 
-from apps.api.app.models.enums import AgentRunStatus, EvidenceSourceType, RiskLevel, ToolCallStatus
+from apps.api.app.models.enums import (
+    AgentRunStatus,
+    ApprovalStatus,
+    EvidenceSourceType,
+    RiskLevel,
+    ToolCallStatus,
+)
 
 
 class InvestigationInput(BaseModel):
@@ -168,4 +174,37 @@ class EvidenceRead(BaseModel):
 
 class EvidenceListResponse(BaseModel):
     items: list[EvidenceRead]
+    total: int
+
+
+class ApprovalDecision(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    decision: ApprovalStatus
+    decided_by: str = Field(min_length=1, max_length=128)
+    reason: str | None = Field(default=None, min_length=1, max_length=2000)
+
+
+class ApprovalRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    recommendation_id: uuid.UUID
+    agent_run_id: uuid.UUID
+    action_type: str
+    parameters: dict[str, JsonValue]
+    action_hash: str
+    status: ApprovalStatus
+    decided_by: str | None
+    decision_reason: str | None
+    expires_at: datetime
+    decided_at: datetime | None
+    executed_at: datetime | None
+    execution_status: str | None
+    execution_error: str | None
+    created_at: datetime
+
+
+class ApprovalListResponse(BaseModel):
+    items: list[ApprovalRead]
     total: int

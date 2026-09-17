@@ -23,7 +23,13 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from apps.api.app.models.base import Base
-from apps.api.app.models.enums import AgentRunStatus, EvidenceSourceType, RiskLevel, ToolCallStatus
+from apps.api.app.models.enums import (
+    AgentRunStatus,
+    ApprovalStatus,
+    EvidenceSourceType,
+    RiskLevel,
+    ToolCallStatus,
+)
 
 
 class AgentRun(Base):
@@ -188,6 +194,42 @@ class Recommendation(Base):
     risk_level: Mapped[RiskLevel] = mapped_column(String(16))
     status: Mapped[str] = mapped_column(String(16), default="proposed")
     requires_approval: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class Approval(Base):
+    """Human decision for one immutable recommendation action."""
+
+    __tablename__ = "approvals"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'approved', 'rejected')", name="ck_approvals_status"
+        ),
+        CheckConstraint(
+            "action_type IN ('simulated_restart', 'simulated_rollback', 'simulated_scale', "
+            "'create_incident_note')",
+            name="ck_approvals_action_type",
+        ),
+        UniqueConstraint("recommendation_id", name="uq_approvals_recommendation"),
+        Index("ix_approvals_status_created", "status", "created_at", "id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    recommendation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("recommendations.id"))
+    agent_run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent_runs.id"))
+    action_type: Mapped[str] = mapped_column(String(128))
+    parameters: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    action_hash: Mapped[str] = mapped_column(String(64))
+    status: Mapped[ApprovalStatus] = mapped_column(String(16), default=ApprovalStatus.PENDING)
+    decided_by: Mapped[str | None] = mapped_column(String(128), default=None)
+    decision_reason: Mapped[str | None] = mapped_column(Text, default=None)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    executed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    execution_status: Mapped[str | None] = mapped_column(String(16), default=None)
+    execution_error: Mapped[str | None] = mapped_column(Text, default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

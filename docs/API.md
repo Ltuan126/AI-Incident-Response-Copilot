@@ -106,7 +106,7 @@ service also emits `agent_run_created` and `evidence_collected` when records are
 }
 ```
 
-### POST `/api/v1/incidents/{incident_id}/analyze` — **Planned (week 3)**
+### POST `/api/v1/incidents/{incident_id}/analyze`
 
 Starts an agent run.
 
@@ -141,8 +141,21 @@ Evidence includes `id`, `incident_id`, `agent_run_id`, optional `tool_call_id`, 
 `collected_at`, and `created_at`. Queries and JSON strings retain their original whitespace.
 
 New incidents have no evidence until a collector writes it. Hypothesis/recommendation persistence
-is implemented internally; analysis/report endpoints, approval and execution remain planned.
+is implemented internally; report generation and remediation execution remain planned.
 See [EVIDENCE.md](EVIDENCE.md) for the write contract, validation rules and security limitations.
+
+## Human approval gate (implemented)
+
+The analyzer can propose an allow-listed simulated action. A human creates an approval request,
+then explicitly approves or rejects it. The action and parameters are hashed when requested and
+verified again at decision time. This flow changes incident state but does not execute remediation.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/api/v1/recommendations/{recommendation_id}/approval` | Create or return the approval request. |
+| GET | `/api/v1/approvals/pending` | List pending approvals. |
+| POST | `/api/v1/approvals/{approval_id}/decision` | Approve or reject with reviewer identity and optional reason. |
+| POST | `/api/v1/approvals/{approval_id}/execute` | Execute an approved simulated rollback and resolve the demo incident. |
 
 ### POST `/api/v1/incidents/{incident_id}/collect-evidence`
 
@@ -203,12 +216,10 @@ Fault modes only change responses, latency, logs and reported metrics — nothin
 WS   /api/v1/agent-runs/{run_id}/stream
 ```
 
-**Approvals (week 4)**
+**Approvals and simulated rollback (implemented)**
 
 ```
-GET  /api/v1/approvals/pending
 GET  /api/v1/approvals/{approval_id}
-POST /api/v1/approvals/{approval_id}/decision
 ```
 
 **Runbooks (week 3)**

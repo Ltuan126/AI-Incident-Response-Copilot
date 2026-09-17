@@ -15,9 +15,9 @@ rule-based baseline.
 
 ## What it looks like
 
-The following is the **target workflow**, not output from the current implementation. Automatic
-alert detection, connector collection and investigation persistence work; AI analysis and approval
-execution are still planned.
+The following is the target workflow. Automatic alert detection, connector collection, deterministic
+evidence-grounded analysis and the human approval decision flow are implemented; live LLM analysis
+and remediation execution remain planned.
 
 Prometheus fires: `checkout-api` error rate went from 1% to 35%.
 
@@ -67,7 +67,8 @@ the claims in this README honest.
 | PostgreSQL integration tests + migration upgrade/downgrade checks | **Done** |
 | Prometheus / Loki / deployment connectors + collection endpoint | **Done** |
 | LangGraph agent, runbook RAG, evidence grounding | Planned — week 3 |
-| Human approval gate + simulated remediation | Planned — week 4 |
+| Human approval gate (allowlist, action hash, approve/reject) | **Done** |
+| Simulated remediation execution | Planned — week 4 |
 | Evaluation suite and rule-based baseline | Planned — week 5 |
 | React dashboard | Planned — week 4 |
 
@@ -220,8 +221,8 @@ checks schema/model consistency, and verifies that pre-existing incidents surviv
 
 ## Safety model
 
-This section describes the planned execution policy. Step 2 only stores recommendations as
-`proposed` with `requires_approval=true`; there is no approval or remediation execution API yet.
+This section describes the execution policy. Recommendations are stored as `proposed` and can
+create an approval request; remediation execution is still intentionally unavailable.
 
 The agent can propose anything. It can *execute* almost nothing.
 

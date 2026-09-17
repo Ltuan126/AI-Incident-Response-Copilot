@@ -53,6 +53,9 @@ class IncidentEventType(StrEnum):
     DEPLOYMENT_RECORDED = "deployment_recorded"
     AGENT_RUN_CREATED = "agent_run_created"
     EVIDENCE_COLLECTED = "evidence_collected"
+    APPROVAL_REQUESTED = "approval_requested"
+    APPROVAL_DECIDED = "approval_decided"
+    REMEDIATION_EXECUTED = "remediation_executed"
 
 
 class AgentRunStatus(StrEnum):
@@ -79,3 +82,9 @@ class RiskLevel(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
+
+
+class ApprovalStatus(StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"

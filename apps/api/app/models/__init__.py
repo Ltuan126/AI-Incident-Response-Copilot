@@ -3,6 +3,7 @@ from apps.api.app.models.base import Base
 from apps.api.app.models.deployment import DeploymentEvent
 from apps.api.app.models.enums import (
     AgentRunStatus,
+    ApprovalStatus,
     DeploymentStatus,
     EvidenceSourceType,
     IncidentEventType,
@@ -14,6 +15,7 @@ from apps.api.app.models.enums import (
 from apps.api.app.models.incident import Incident, IncidentAlert, IncidentEvent
 from apps.api.app.models.investigation import (
     AgentRun,
+    Approval,
     Evidence,
     Hypothesis,
     HypothesisEvidence,
@@ -25,6 +27,8 @@ from apps.api.app.models.service import Service
 __all__ = [
     "AgentRun",
     "AgentRunStatus",
+    "Approval",
+    "ApprovalStatus",
     "Alert",
     "Base",
     "DeploymentEvent",
