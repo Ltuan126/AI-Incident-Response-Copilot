@@ -61,13 +61,20 @@ async def execute_approval(
                 f"{settings.demo_service_url}/internal/fault-mode", json={"mode": "normal"}
             )
             response.raise_for_status()
-    except httpx.HTTPError as exc:
+            health = await client.get(f"{settings.demo_service_url}/health")
+            health.raise_for_status()
+            health_state = health.json()
+            if health_state.get("status") != "ok" or health_state.get("mode") != "normal":
+                raise ValueError("Demo service health verification did not confirm normal mode")
+    except (httpx.HTTPError, ValueError) as exc:
         approval.execution_status = "failed"
         approval.execution_error = str(exc)
         approval.executed_at = datetime.now(UTC)
         incident.status = IncidentStatus.FAILED
         await session.flush()
-        raise RemediationError("Demo service rejected the rollback") from exc
+        raise RemediationError(
+            "Rollback completed without a healthy recovery verification"
+        ) from exc
 
     approval.execution_status = "succeeded"
     approval.execution_error = None
@@ -77,7 +84,7 @@ async def execute_approval(
         IncidentEvent(
             incident_id=incident.id,
             event_type=IncidentEventType.REMEDIATION_EXECUTED,
-            message="Approved simulated rollback executed successfully.",
+            message="Approved simulated rollback executed and recovery was verified.",
             event_metadata={"approval_id": str(approval.id), "action_type": approval.action_type},
         )
     )
