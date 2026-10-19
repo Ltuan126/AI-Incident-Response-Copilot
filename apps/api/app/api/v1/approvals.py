@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func, select
 
 from apps.api.app.api.deps import SessionDep, SettingsDep
-from apps.api.app.models import Approval, ApprovalStatus
+from apps.api.app.models import AgentRun, Approval, ApprovalStatus
 from apps.api.app.schemas.investigation import (
     ApprovalDecision,
     ApprovalListResponse,
@@ -52,6 +52,28 @@ async def list_pending_approvals(
     return ApprovalListResponse(
         items=[ApprovalRead.model_validate(row) for row in rows], total=total
     )
+
+
+@router.get("/approvals/{approval_id}", response_model=ApprovalRead)
+async def get_approval(approval_id: uuid.UUID, session: SessionDep) -> ApprovalRead:
+    approval = await session.get(Approval, approval_id)
+    if approval is None:
+        raise HTTPException(status_code=404, detail="Approval not found")
+    return ApprovalRead.model_validate(approval)
+
+
+@router.get("/incidents/{incident_id}/approval", response_model=ApprovalRead)
+async def get_incident_approval(incident_id: uuid.UUID, session: SessionDep) -> ApprovalRead:
+    approval = await session.scalar(
+        select(Approval)
+        .join(AgentRun, Approval.agent_run_id == AgentRun.id)
+        .where(AgentRun.incident_id == incident_id)
+        .order_by(Approval.created_at.desc(), Approval.id.desc())
+        .limit(1)
+    )
+    if approval is None:
+        raise HTTPException(status_code=404, detail="No approval found for this incident")
+    return ApprovalRead.model_validate(approval)
 
 
 @router.post("/approvals/{approval_id}/decision", response_model=ApprovalRead)

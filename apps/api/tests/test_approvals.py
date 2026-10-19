@@ -124,3 +124,34 @@ async def test_invalid_recommendation_returns_not_found(client: AsyncClient) -> 
     response = await client.post(f"/api/v1/recommendations/{uuid.uuid4()}/approval")
     assert response.status_code == 400
     assert response.json()["detail"] == "Recommendation not found"
+
+
+async def test_get_approval_by_id_and_by_incident(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    recommendation = await make_recommendation(session)
+    create_resp = await client.post(f"/api/v1/recommendations/{recommendation.id}/approval")
+    assert create_resp.status_code == 201
+    approval_data = create_resp.json()
+    approval_id = approval_data["id"]
+
+    # Fetch by approval_id
+    get_resp = await client.get(f"/api/v1/approvals/{approval_id}")
+    assert get_resp.status_code == 200
+    assert get_resp.json()["id"] == approval_id
+    assert get_resp.json()["status"] == "pending"
+
+    # Fetch by incident_id
+    incident_id = recommendation.parameters["incident_id"]
+    inc_resp = await client.get(f"/api/v1/incidents/{incident_id}/approval")
+    assert inc_resp.status_code == 200
+    assert inc_resp.json()["id"] == approval_id
+
+
+async def test_get_approval_not_found(client: AsyncClient) -> None:
+    missing_id = uuid.uuid4()
+    resp1 = await client.get(f"/api/v1/approvals/{missing_id}")
+    assert resp1.status_code == 404
+
+    resp2 = await client.get(f"/api/v1/incidents/{missing_id}/approval")
+    assert resp2.status_code == 404
