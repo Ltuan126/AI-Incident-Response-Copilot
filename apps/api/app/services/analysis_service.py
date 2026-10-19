@@ -16,6 +16,7 @@ from apps.api.app.models import (
     Evidence,
     EvidenceSourceType,
     Incident,
+    IncidentStatus,
     RiskLevel,
 )
 from apps.api.app.schemas.analysis import (
@@ -88,6 +89,8 @@ async def analyze_incident(
     run.provider = "deterministic"
     run.model_name = "evidence-rules-v1"
     run.prompt_version = "analysis-rules-v1"
+    if incident.status in (IncidentStatus.NEW, IncidentStatus.COLLECTING_EVIDENCE):
+        incident.status = IncidentStatus.ANALYZING
 
     metric_ids = [item.id for item in evidence if item.source_type == EvidenceSourceType.METRIC]
     log_ids = [item.id for item in evidence if item.source_type == EvidenceSourceType.LOG]

@@ -7,7 +7,14 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.app.core.config import Settings
-from apps.api.app.models import AgentRun, AgentRunStatus, Incident, Service, ToolCallStatus
+from apps.api.app.models import (
+    AgentRun,
+    AgentRunStatus,
+    Incident,
+    IncidentStatus,
+    Service,
+    ToolCallStatus,
+)
 from apps.api.app.schemas.collection import (
     CollectEvidenceRequest,
     CollectEvidenceResponse,
@@ -57,6 +64,8 @@ async def collect_incident_evidence(
     )
     run.status = AgentRunStatus.RUNNING
     run.started_at = datetime.now(UTC)
+    if incident.status == IncidentStatus.NEW:
+        incident.status = IncidentStatus.COLLECTING_EVIDENCE
     await session.commit()
 
     prometheus = PrometheusConnector(

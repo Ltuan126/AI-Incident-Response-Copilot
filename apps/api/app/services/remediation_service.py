@@ -80,6 +80,7 @@ async def execute_approval(
     approval.execution_error = None
     approval.executed_at = datetime.now(UTC)
     incident.status = IncidentStatus.RESOLVED
+    incident.resolved_at = approval.executed_at
     session.add(
         IncidentEvent(
             incident_id=incident.id,
