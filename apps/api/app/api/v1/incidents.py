@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func, select
 
-from apps.api.app.api.deps import SessionDep
+from apps.api.app.api.deps import SessionDep, SettingsDep
 from apps.api.app.models import Incident, IncidentEvent, IncidentStatus, Service, Severity
 from apps.api.app.schemas.incident import (
     IncidentEventRead,
@@ -12,6 +12,12 @@ from apps.api.app.schemas.incident import (
     IncidentRead,
     IncidentTimelineResponse,
 )
+from apps.api.app.schemas.orchestrator import (
+    InvestigateIncidentRequest,
+    InvestigateIncidentResponse,
+)
+from apps.api.app.services.collection_service import CollectionNotFoundError
+from apps.api.app.services.orchestrator_service import investigate_incident
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 
@@ -70,3 +76,24 @@ async def get_timeline(incident_id: uuid.UUID, session: SessionDep) -> IncidentT
     return IncidentTimelineResponse(
         incident_id=incident_id, events=[IncidentEventRead.model_validate(r) for r in rows]
     )
+
+
+@router.post(
+    "/{incident_id}/investigate",
+    response_model=InvestigateIncidentResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def investigate(
+    incident_id: uuid.UUID,
+    session: SessionDep,
+    settings: SettingsDep,
+    payload: InvestigateIncidentRequest | None = None,
+) -> InvestigateIncidentResponse:
+    try:
+        response = await investigate_incident(
+            session, incident_id, payload or InvestigateIncidentRequest(), settings
+        )
+        await session.commit()
+        return response
+    except CollectionNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
