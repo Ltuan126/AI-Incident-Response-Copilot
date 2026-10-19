@@ -154,8 +154,14 @@ verified again at decision time. This flow changes incident state but does not e
 | --- | --- | --- |
 | POST | `/api/v1/recommendations/{recommendation_id}/approval` | Create or return the approval request. |
 | GET | `/api/v1/approvals/pending` | List pending approvals. |
+| GET | `/api/v1/approvals/{approval_id}` | Retrieve approval status and execution details. |
+| GET | `/api/v1/incidents/{incident_id}/approval` | Retrieve the active approval linked to an incident. |
 | POST | `/api/v1/approvals/{approval_id}/decision` | Approve or reject with reviewer identity and optional reason. |
 | POST | `/api/v1/approvals/{approval_id}/execute` | Execute an approved simulated rollback and resolve the demo incident. |
+
+### POST `/api/v1/incidents/{incident_id}/investigate`
+
+Runs the end-to-end investigation pipeline: collects telemetry evidence from Prometheus, Loki and PostgreSQL deployments, executes evidence-grounded analysis to identify root causes with citations, and automatically requests human approval if remediation is proposed.
 
 ### POST `/api/v1/incidents/{incident_id}/collect-evidence`
 

@@ -68,7 +68,8 @@ the claims in this README honest.
 | Prometheus / Loki / deployment connectors + collection endpoint | **Done** |
 | LangGraph agent, runbook RAG, evidence grounding | Planned — week 3 |
 | Human approval gate (allowlist, action hash, approve/reject) | **Done** |
-| Simulated remediation execution | Planned — week 4 |
+| Simulated remediation execution & recovery verification | **Done** |
+| End-to-end incident investigation orchestrator & demo runner | **Done** |
 | Evaluation suite and rule-based baseline | Planned — week 5 |
 | React dashboard | Planned — week 4 |
 
@@ -186,6 +187,31 @@ source. This collection flow does not start an AI agent or execute remediation. 
 [docs/EVIDENCE.md](docs/EVIDENCE.md) for the data contract and internal write boundary that the
 agent uses. Existing installations need `alembic upgrade head` after rebuilding
 the API image; do not delete the database volume.
+
+### Run the end-to-end incident demo
+
+Run the complete incident lifecycle from alert detection through recovery verification:
+
+```bash
+python scripts/run_demo.py
+```
+
+To manually interact with the approval gate in your terminal:
+
+```bash
+python scripts/run_demo.py --interactive
+```
+
+The script walks through:
+1. Triggering a deployment regression fault scenario
+2. Ingesting critical alert into the Copilot
+3. Collecting evidence from Prometheus, Loki, and Deployments
+4. Running evidence-grounded root-cause analysis with citations
+5. Opening a human approval request with integrity hashing
+6. Operator decision (approval / rejection)
+7. Executing simulated rollback
+8. Verifying demo service health recovery and closing the incident
+9. Printing the complete chronological timeline audit trail
 
 ---
 
