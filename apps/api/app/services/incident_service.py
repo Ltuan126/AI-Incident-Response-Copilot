@@ -86,11 +86,11 @@ async def ingest_alert(
         )
         row = existing.one_or_none()
         if row is not None:
-            alert, incident, service = row
+            alert, existing_incident, service = row
             return IngestResult(
                 alert_id=alert.id,
-                incident_id=incident.id,
-                status=IncidentStatus(incident.status),
+                incident_id=existing_incident.id,
+                status=IncidentStatus(existing_incident.status),
                 correlated=True,
                 service_name=service.name,
                 duplicate=True,
