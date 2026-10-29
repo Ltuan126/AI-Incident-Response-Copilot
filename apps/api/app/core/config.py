@@ -21,6 +21,14 @@ class Settings(BaseSettings):
     correlation_window_seconds: int = 300
     prompt_version: str = "incident-analysis-v1"
 
+    llm_provider: str = "mock"
+    llm_model: str = "mock-model"
+    llm_api_key: str = ""
+    llm_base_url: str = ""
+    llm_timeout_seconds: float = 60.0
+    anthropic_api_key: str = ""
+    openai_api_key: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

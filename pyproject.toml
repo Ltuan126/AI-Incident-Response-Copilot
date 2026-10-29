@@ -46,6 +46,7 @@ packages = [
     "apps.worker.agent",
     "apps.worker.agent.nodes",
     "apps.worker.agent.policies",
+    "apps.worker.agent.providers",
     "packages",
     "packages.connectors",
     "packages.evaluation",

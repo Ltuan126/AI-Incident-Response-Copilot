@@ -37,6 +37,8 @@ class IncidentAgentState(TypedDict, total=False):
     # Structured outputs
     hypotheses: list[dict[str, Any]]
     selected_hypothesis: dict[str, Any] | None
+    # Recommendation hint produced by the LLM (validated by safety_check before use)
+    llm_recommendation_hint: dict[str, Any] | None
     recommendations: list[dict[str, Any]]
     selected_recommendation: dict[str, Any] | None
 

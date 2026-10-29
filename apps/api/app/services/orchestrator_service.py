@@ -139,6 +139,7 @@ async def investigate_incident(
         "signals": {},
         "hypotheses": [],
         "selected_hypothesis": None,
+        "llm_recommendation_hint": None,
         "recommendations": [],
         "selected_recommendation": None,
         "status": "running",
