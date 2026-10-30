@@ -121,9 +121,7 @@ class AnthropicProvider(LLMProvider):
 
             self._client: Any = anthropic.AsyncAnthropic(api_key=api_key)
         except ImportError as exc:
-            raise ImportError(
-                "Install the Anthropic SDK:  pip install anthropic"
-            ) from exc
+            raise ImportError("Install the Anthropic SDK:  pip install anthropic") from exc
         self._model = model
         self._timeout = timeout
 
@@ -177,9 +175,7 @@ class AnthropicProvider(LLMProvider):
         stripped = raw_text.strip()
         if stripped.startswith("```"):
             lines = stripped.splitlines()
-            stripped = "\n".join(
-                line for line in lines if not line.startswith("```")
-            ).strip()
+            stripped = "\n".join(line for line in lines if not line.startswith("```")).strip()
 
         try:
             parsed: dict[str, Any] = json.loads(stripped)

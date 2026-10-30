@@ -52,9 +52,7 @@ def build_provider(settings: Settings) -> LLMProvider:
 
         api_key = settings.openai_api_key or settings.llm_api_key
         if not api_key:
-            raise ValueError(
-                "OPENAI_API_KEY (or LLM_API_KEY) must be set when LLM_PROVIDER=openai"
-            )
+            raise ValueError("OPENAI_API_KEY (or LLM_API_KEY) must be set when LLM_PROVIDER=openai")
         logger.info("llm_provider_selected", provider="openai", model=settings.llm_model)
         return OpenAIProvider(
             api_key=api_key,
@@ -64,6 +62,5 @@ def build_provider(settings: Settings) -> LLMProvider:
         )
 
     raise ValueError(
-        f"Unknown LLM_PROVIDER '{provider_name}'. "
-        "Supported values: mock, anthropic, openai"
+        f"Unknown LLM_PROVIDER '{provider_name}'. Supported values: mock, anthropic, openai"
     )

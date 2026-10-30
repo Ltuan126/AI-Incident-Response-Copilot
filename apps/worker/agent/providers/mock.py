@@ -149,12 +149,12 @@ class MockProvider(LLMProvider):
         )
 
         evidence_summary = "\n".join(
-            f"  [{e.get('source_type', '?')}] {e.get('summary', '')[:80]}"
-            for e in evidence_records
+            f"  [{e.get('source_type', '?')}] {e.get('summary', '')[:80]}" for e in evidence_records
         )
-        runbook_summary = "\n".join(
-            f"  - {rb.get('title', '?')}" for rb in retrieved_runbooks
-        ) or "  (none retrieved)"
+        runbook_summary = (
+            "\n".join(f"  - {rb.get('title', '?')}" for rb in retrieved_runbooks)
+            or "  (none retrieved)"
+        )
         signals_text = json.dumps(signals, indent=2)
 
         reasoning = _REASONING_TEMPLATE.format(

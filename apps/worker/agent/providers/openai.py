@@ -115,9 +115,7 @@ class OpenAIProvider(LLMProvider):
                 kwargs["base_url"] = base_url
             self._client: Any = openai.AsyncOpenAI(**kwargs)
         except ImportError as exc:
-            raise ImportError(
-                "Install the OpenAI SDK:  pip install openai"
-            ) from exc
+            raise ImportError("Install the OpenAI SDK:  pip install openai") from exc
         self._model = model
         self._timeout = timeout
 

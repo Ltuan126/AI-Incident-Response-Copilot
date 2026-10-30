@@ -20,6 +20,7 @@ from apps.worker.agent.providers.mock import MockProvider
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_settings(provider: str = "mock", model: str = "mock-model"):  # type: ignore[return]
     """Return a minimal Settings-like object for the factory."""
 
