@@ -26,7 +26,7 @@ def propose_actions_node(state: IncidentAgentState) -> dict[str, Any]:
         }
 
     # LLM hint from generate_hypotheses_node (may be None for mock or if LLM skipped)
-    llm_hint: dict[str, Any] | None = state.get("llm_recommendation_hint")  # type: ignore[assignment]
+    llm_hint: dict[str, Any] | None = state.get("llm_recommendation_hint")
 
     runbook_title = retrieved_runbooks[0].get("title") if retrieved_runbooks else "standard runbook"
 

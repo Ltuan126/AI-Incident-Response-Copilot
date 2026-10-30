@@ -14,12 +14,14 @@ Requires:  pip install openai
 from __future__ import annotations
 
 import json
-import logging
 from typing import Any
 
+import openai
+
+from apps.api.app.core.logging import get_logger
 from apps.worker.agent.providers.base import LLMProvider, LLMResponse
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _SYSTEM_PROMPT = """\
 You are an evidence-grounded Incident Response Copilot. Reason over the provided \
@@ -107,15 +109,10 @@ class OpenAIProvider(LLMProvider):
     """Sends structured prompts to GPT models and parses JSON hypothesis output."""
 
     def __init__(self, api_key: str, model: str, timeout: float, base_url: str = "") -> None:
-        try:
-            import openai  # type: ignore[import-untyped]
-
-            kwargs: dict[str, Any] = {"api_key": api_key}
-            if base_url:
-                kwargs["base_url"] = base_url
-            self._client: Any = openai.AsyncOpenAI(**kwargs)
-        except ImportError as exc:
-            raise ImportError("Install the OpenAI SDK:  pip install openai") from exc
+        kwargs: dict[str, Any] = {"api_key": api_key}
+        if base_url:
+            kwargs["base_url"] = base_url
+        self._client: Any = openai.AsyncOpenAI(**kwargs)
         self._model = model
         self._timeout = timeout
 
@@ -136,7 +133,6 @@ class OpenAIProvider(LLMProvider):
         min_confidence: float,
         prompt_version: str,
     ) -> LLMResponse:
-        import openai  # type: ignore[import-untyped]
 
         user_message = _build_user_message(
             incident_id=incident_id,

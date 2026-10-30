@@ -19,12 +19,14 @@ Requires:  pip install anthropic
 from __future__ import annotations
 
 import json
-import logging
 from typing import Any
 
+import anthropic
+
+from apps.api.app.core.logging import get_logger
 from apps.worker.agent.providers.base import LLMProvider, LLMResponse
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _ALLOWED_ACTIONS = frozenset(
     {"simulated_restart", "simulated_rollback", "simulated_scale", "create_incident_note"}
@@ -116,12 +118,7 @@ class AnthropicProvider(LLMProvider):
     """Sends structured prompts to Claude and parses JSON hypothesis output."""
 
     def __init__(self, api_key: str, model: str, timeout: float) -> None:
-        try:
-            import anthropic  # type: ignore[import-untyped]
-
-            self._client: Any = anthropic.AsyncAnthropic(api_key=api_key)
-        except ImportError as exc:
-            raise ImportError("Install the Anthropic SDK:  pip install anthropic") from exc
+        self._client: Any = anthropic.AsyncAnthropic(api_key=api_key)
         self._model = model
         self._timeout = timeout
 
@@ -142,7 +139,6 @@ class AnthropicProvider(LLMProvider):
         min_confidence: float,
         prompt_version: str,
     ) -> LLMResponse:
-        import anthropic  # type: ignore[import-untyped]
 
         user_message = _build_user_message(
             incident_id=incident_id,

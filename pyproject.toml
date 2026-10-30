@@ -20,6 +20,8 @@ dependencies = [
     "httpx>=0.28",
     "redis>=5.2",
     "langgraph>=1.0",
+    "openai>=1.58",
+    "anthropic>=0.45",
 ]
 
 [project.optional-dependencies]
