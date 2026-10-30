@@ -104,7 +104,8 @@ async def _generate_hypotheses_async(state: IncidentAgentState) -> dict[str, Any
     if llm_response.root_cause is None or llm_response.hypothesis_summary is None:
         return {
             "status": "insufficient_evidence",
-            "summary": llm_response.reasoning or "Insufficient evidence to determine a reliable root cause.",
+            "summary": llm_response.reasoning
+            or "Insufficient evidence to determine a reliable root cause.",
             "selected_hypothesis": None,
             "hypotheses": [],
             "input_tokens": llm_response.input_tokens,

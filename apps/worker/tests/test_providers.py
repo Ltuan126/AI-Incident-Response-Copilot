@@ -16,7 +16,6 @@ from apps.worker.agent.providers.base import LLMProvider, LLMResponse
 from apps.worker.agent.providers.factory import build_provider
 from apps.worker.agent.providers.mock import MockProvider
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

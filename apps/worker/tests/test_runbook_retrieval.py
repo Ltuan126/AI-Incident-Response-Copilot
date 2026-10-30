@@ -10,7 +10,8 @@ from apps.worker.agent.state import IncidentAgentState
 
 
 def test_parse_runbook_file_success() -> None:
-    path = Path(__file__).resolve().parents[3] / "runbooks" / "checkout-api-database-connection-exhaustion.md"
+    base = Path(__file__).resolve().parents[3]
+    path = base / "runbooks" / "checkout-api-database-connection-exhaustion.md"
     assert path.exists()
     doc = parse_runbook_file(path)
 
